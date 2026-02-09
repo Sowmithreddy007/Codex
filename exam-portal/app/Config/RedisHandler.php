@@ -13,10 +13,15 @@ final class RedisHandler
     private static ?self $instance = null;
     private Redis $redis;
 
+    public static function isAvailable(): bool
+    {
+        return class_exists(Redis::class);
+    }
+
     private function __construct()
     {
         if (!class_exists(Redis::class)) {
-            throw new RuntimeException('phpredis extension is required for RedisHandler.');
+            throw new RuntimeException('phpredis extension is required.');
         }
 
         $host = $_ENV['REDIS_HOST'] ?? getenv('REDIS_HOST') ?: '127.0.0.1';
@@ -34,7 +39,6 @@ final class RedisHandler
             }
 
             $this->redis->select($database);
-            $this->redis->setOption(Redis::OPT_SERIALIZER, Redis::SERIALIZER_JSON);
         } catch (RedisException $exception) {
             throw new RuntimeException('Redis connection failed: ' . $exception->getMessage(), 0, $exception);
         }

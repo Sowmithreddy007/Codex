@@ -1,0 +1,74 @@
+CREATE DATABASE IF NOT EXISTS spec_exam CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE spec_exam;
+
+CREATE TABLE IF NOT EXISTS batches (
+  id VARCHAR(10) PRIMARY KEY,
+  name VARCHAR(100) NOT NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS users (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  email VARCHAR(150) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  role ENUM('admin','student') NOT NULL,
+  batch_id VARCHAR(10) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_users_batch FOREIGN KEY (batch_id) REFERENCES batches(id)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS exams (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  duration INT NOT NULL,
+  start_time DATETIME NOT NULL,
+  end_time DATETIME NOT NULL,
+  created_by BIGINT UNSIGNED NOT NULL,
+  CONSTRAINT fk_exams_creator FOREIGN KEY (created_by) REFERENCES users(id)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS exam_assignments (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  exam_id BIGINT UNSIGNED NOT NULL,
+  target_batch_id VARCHAR(10) NOT NULL,
+  CONSTRAINT fk_assignments_exam FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE,
+  CONSTRAINT fk_assignments_batch FOREIGN KEY (target_batch_id) REFERENCES batches(id)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS questions (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  exam_id BIGINT UNSIGNED NOT NULL,
+  text TEXT NOT NULL,
+  option_a VARCHAR(255) NOT NULL,
+  option_b VARCHAR(255) NOT NULL,
+  option_c VARCHAR(255) NOT NULL,
+  option_d VARCHAR(255) NOT NULL,
+  correct_option ENUM('A','B','C','D') NOT NULL,
+  topic_tag VARCHAR(100) NULL,
+  CONSTRAINT fk_questions_exam FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS user_responses (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT UNSIGNED NOT NULL,
+  exam_id BIGINT UNSIGNED NOT NULL,
+  question_id BIGINT UNSIGNED NOT NULL,
+  selected_option ENUM('A','B','C','D') NOT NULL,
+  is_correct TINYINT(1) NOT NULL,
+  CONSTRAINT fk_responses_user FOREIGN KEY (user_id) REFERENCES users(id),
+  CONSTRAINT fk_responses_exam FOREIGN KEY (exam_id) REFERENCES exams(id),
+  CONSTRAINT fk_responses_question FOREIGN KEY (question_id) REFERENCES questions(id)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS exam_results (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT UNSIGNED NOT NULL,
+  exam_id BIGINT UNSIGNED NOT NULL,
+  score DECIMAL(5,2) NOT NULL,
+  rank INT NULL,
+  batch_avg DECIMAL(5,2) NULL,
+  submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_user_exam (user_id, exam_id),
+  CONSTRAINT fk_results_user FOREIGN KEY (user_id) REFERENCES users(id),
+  CONSTRAINT fk_results_exam FOREIGN KEY (exam_id) REFERENCES exams(id)
+) ENGINE=InnoDB;
